@@ -155,7 +155,7 @@
       "template": "钟馗抓鬼识别文字.png",
       "threshold": 0.84,
       "attempts": 1,
-      "timeout_per_attempt": 1.2,
+      "timeout_per_attempt": 2.0,
       "interval": 0.08,
       "initial_delay": [
         0.08,
@@ -267,7 +267,9 @@
             0.62
           ]
         }
-      }
+      },
+      "adb_fallback_on_fail": true,
+      "debug_note": "视频帧可能拿到组队页切换前旧帧；失败前用 ADB 当前截图兜底复核一次。"
     },
     {
       "type": "region_click",
@@ -457,6 +459,11 @@
       "click_first": false,
       "ghost_coordinate_pattern": true,
       "coordinate_must_change": true,
+      "perf_log": true,
+      "require_before_coordinate": true,
+      "before_coordinate_timeout": 3.0,
+      "before_coordinate_interval": 0.2,
+      "require_opened_eye_coordinate": true,
       "set_flags_from_ocr": [
         {
           "flag": "need_fly_mount_for_ghost",
@@ -472,11 +479,6 @@
           ]
         }
       ],
-      "perf_log": true,
-      "require_before_coordinate": true,
-      "before_coordinate_timeout": 3.0,
-      "before_coordinate_interval": 0.2,
-      "require_opened_eye_coordinate": true,
       "adb_ocr_fallback_on_eye_fail": true
     },
     {
@@ -804,5 +806,6 @@
       "min": 0.08,
       "max": 0.22
     }
-  ]
+  ],
+  "frame_source": "video"
 }

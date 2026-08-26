@@ -83,7 +83,12 @@ class WorkflowRunner:
                             if self.stop_event.is_set():
                                 break
                             self.log(f"?? {index}: {self.describe_step(step)}")
+                            step_started_at = time.monotonic()
                             self._run_step(step)
+                            step_elapsed_ms = (time.monotonic() - step_started_at) * 1000.0
+                            if step.get("perf_log", False):
+                                label = step.get("label") or step.get("template") or step.get("type")
+                                self.log(f"perf step: {label} total={step_elapsed_ms:.0f}ms")
                         break
                     except RestartWorkflow:
                         restart_count += 1
@@ -336,15 +341,29 @@ class WorkflowRunner:
         padding_ratio: float = 0.12,
         tap_mode: str = "tap",
     ) -> tuple[int, int]:
+        started_at = time.monotonic()
         self._interruptible_delay(*pre_delay)
+        after_pre = time.monotonic()
         point = self.human.random_point_in_region(region, padding_ratio=padding_ratio)
         x, y = self.human.to_absolute(point)
+        after_point = time.monotonic()
         if not self.stop_event.is_set():
             if tap_mode == "swipe":
                 self.device.short_swipe_tap(x, y)
             else:
                 self.device.tap(x, y)
+        after_input = time.monotonic()
         self._interruptible_delay(*post_delay)
+        after_post = time.monotonic()
+        self.log(
+            "perf tap_region: "
+            f"pre={(after_pre - started_at) * 1000.0:.0f}ms "
+            f"coord={(after_point - after_pre) * 1000.0:.0f}ms "
+            f"input={(after_input - after_point) * 1000.0:.0f}ms "
+            f"post={(after_post - after_input) * 1000.0:.0f}ms "
+            f"total={(after_post - started_at) * 1000.0:.0f}ms "
+            f"point=({x},{y}) mode={tap_mode}"
+        )
         return x, y
 
     def _log_click_detail(
@@ -757,8 +776,25 @@ class WorkflowRunner:
         before_coord = self._extract_ghost_coordinate(before_detail)
         self.log(f"eye check before: coord={before_coord}, ocr='{before_detail[:80]}'")
 
+        before_timeout = float(step.get("before_coordinate_timeout", 0.0))
+        if before_coord is None and before_timeout > 0:
+            deadline = time.monotonic() + before_timeout
+            while not self.stop_event.is_set() and time.monotonic() < deadline:
+                self._interruptible_wait(float(step.get("before_coordinate_interval", 0.2)))
+                before_detail = self._ocr_region_detail(search_region, min_confidence)
+                before_coord = self._extract_ghost_coordinate(before_detail)
+                if before_coord is not None:
+                    self.log(f"eye before coord ready: coord={before_coord}, ocr='{before_detail[:80]}'")
+                    break
+
+        if before_coord is None and bool(step.get("require_before_coordinate", False)):
+            self._maybe_save_debug_screenshot(step, "eye_before_coordinate_missing")
+            self._handle_timeout(step, f"eye before coordinate missing: last OCR='{before_detail[:100]}'")
+            return
+
         last_detail = before_detail
         last_coord = before_coord
+        require_opened_eye = bool(step.get("require_opened_eye_coordinate", False))
         for attempt in range(attempts + 1):
             if self.stop_event.is_set():
                 return
@@ -792,15 +828,34 @@ class WorkflowRunner:
                 coord = self._extract_ghost_coordinate(detail)
                 last_detail = detail
                 last_coord = coord
-                if coord is not None and before_coord is not None and coord != before_coord:
+                opened_eye_ok = (not require_opened_eye) or self._looks_like_opened_eye_coordinate(detail)
+                if coord is not None and before_coord is not None and coord != before_coord and opened_eye_ok:
                     self.log(f"eye check ok: {before_coord} -> {coord}, ocr='{detail[:80]}'")
+                    self._set_flags_from_ocr_detail(step, detail)
                     self._maybe_save_debug_screenshot(step, "after_eye_coordinate_changed")
                     return
-                if coord is not None and before_coord is None:
+                if coord is not None and before_coord is None and opened_eye_ok:
                     self.log(f"eye check ok: new coord={coord}, ocr='{detail[:80]}'")
+                    self._set_flags_from_ocr_detail(step, detail)
                     self._maybe_save_debug_screenshot(step, "after_eye_coordinate_found")
                     return
                 self._interruptible_wait(verify_interval)
+
+        if bool(step.get("adb_ocr_fallback_on_eye_fail", False)) and not self.stop_event.is_set():
+            fallback_detail = self._ocr_region_detail(search_region, min_confidence, use_adb_snapshot=True)
+            fallback_coord = self._extract_ghost_coordinate(fallback_detail)
+            fallback_opened = (not require_opened_eye) or self._looks_like_opened_eye_coordinate(fallback_detail)
+            if fallback_coord is not None and fallback_opened and (
+                before_coord is None or fallback_coord != before_coord
+            ):
+                self.log(
+                    f"eye check ok by ADB fallback: {before_coord} -> {fallback_coord}, "
+                    f"ocr='{fallback_detail[:80]}'"
+                )
+                self._set_flags_from_ocr_detail(step, fallback_detail)
+                return
+            last_detail = fallback_detail
+            last_coord = fallback_coord
 
         self._maybe_save_debug_screenshot(step, "eye_coordinate_failed")
         self._handle_timeout(
@@ -808,15 +863,60 @@ class WorkflowRunner:
             f"eye coordinate did not change: before={before_coord}, after={last_coord}, last OCR='{last_detail[:100]}'",
         )
 
-    def _ocr_region_detail(self, region: RelativeRegion | None, min_confidence: float) -> str:
-        crop = self._capture_color_region(region)
+    def _set_flags_from_ocr_detail(self, step: dict, detail: str) -> None:
+        definitions = step.get("set_flags_from_ocr")
+        if not isinstance(definitions, list):
+            return
+        for item in definitions:
+            if not isinstance(item, dict):
+                continue
+            flag = str(item.get("flag") or "").strip()
+            texts = item.get("texts")
+            if isinstance(texts, str):
+                target_texts = [texts]
+            elif isinstance(texts, list):
+                target_texts = [str(text) for text in texts if str(text)]
+            else:
+                target_texts = []
+            if not flag or not target_texts:
+                continue
+            require_all = bool(item.get("require_all", False))
+            found = all(text in detail for text in target_texts) if require_all else any(text in detail for text in target_texts)
+            self.flags[flag] = found
+            self.flag_details[flag] = detail
+            event = self.flag_events.get(flag)
+            if event is None:
+                event = threading.Event()
+                self.flag_events[flag] = event
+            event.set()
+            self.log(f"flag {flag}={str(found).lower()} from eye OCR")
+
+    def _ocr_region_detail(
+        self,
+        region: RelativeRegion | None,
+        min_confidence: float,
+        use_adb_snapshot: bool = False,
+    ) -> str:
+        started_at = time.monotonic()
+        crop = self._capture_color_region(region, use_adb_snapshot=use_adb_snapshot)
+        captured_at = time.monotonic()
         with self._ocr_lock:
             if self._ocr_engine is None:
                 from rapidocr_onnxruntime import RapidOCR
 
                 self._ocr_engine = RapidOCR()
             result, _elapsed = self._ocr_engine(crop)
-        return self._ocr_detail(result, min_confidence)
+        ocr_done_at = time.monotonic()
+        detail = self._ocr_detail(result, min_confidence)
+        self.log(
+            "perf ocr_region: "
+            f"capture={(captured_at - started_at) * 1000.0:.0f}ms "
+            f"ocr={(ocr_done_at - captured_at) * 1000.0:.0f}ms "
+            f"total={(ocr_done_at - started_at) * 1000.0:.0f}ms "
+            f"source={'adb' if use_adb_snapshot else 'frame'} "
+            f"chars={len(detail)}"
+        )
+        return detail
 
     @staticmethod
     def _extract_ghost_coordinate(detail: str) -> tuple[int, int] | None:
@@ -839,6 +939,13 @@ class WorkflowRunner:
         has_route = "去" in normalized and "抓" in normalized
         has_coordinate = re.search(r"\d{1,3}[,，.．、]\d{1,3}", normalized) is not None
         return has_task and has_route and has_coordinate
+
+    @staticmethod
+    def _looks_like_opened_eye_coordinate(detail: str) -> bool:
+        normalized = re.sub(r"\s+", "", detail)
+        if not WorkflowRunner._looks_like_ghost_coordinate(detail):
+            return False
+        return "处抓" in normalized or re.search(r"\d{1,3}[,，.．、]\d{1,3}.{0,4}处.{0,4}抓", normalized) is not None
 
     def _conditional_region_click(self, step: dict) -> None:
         conditions = step.get("conditions")
@@ -1090,7 +1197,37 @@ class WorkflowRunner:
                     }
                 )
                 self._interruptible_delay(*tuple(step.get("after_swipe_delay", [0.7, 1.2])))
+        if step.get("adb_fallback_on_fail", False) and not self.stop_event.is_set():
+            fallback_started_at = time.monotonic()
+            match = self._find_template_from_adb_once(
+                template_path,
+                threshold=threshold,
+                mode=str(step.get("match_mode", "color")),
+                search_region=self._optional_search_region(step),
+            )
+            elapsed_ms = (time.monotonic() - fallback_started_at) * 1000.0
+            if match:
+                self.log(f"ADB兜底识别成功 {match.confidence:.3f}: {step['template']}，耗时{elapsed_ms:.0f}ms")
+                return match
+            self.log(f"ADB兜底仍未识别 {step['template']}，耗时{elapsed_ms:.0f}ms")
         return None
+
+    def _find_template_from_adb_once(
+        self,
+        template_path: Path,
+        threshold: float,
+        mode: str,
+        search_region: RelativeRegion | None,
+    ):
+        adb_source = AdbFrameSource(self.device)
+        frame = adb_source.latest()
+        return self.matcher.find_template(
+            template_path,
+            threshold=threshold,
+            screenshot=frame.image,
+            mode=mode,
+            search_region=search_region,
+        )
 
     def _find_template_until(
         self,
@@ -1552,8 +1689,12 @@ class WorkflowRunner:
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
         return cv2.resize(gray, (160, 90), interpolation=cv2.INTER_AREA)
 
-    def _capture_color_region(self, region: RelativeRegion | None) -> np.ndarray:
-        image = self.matcher.screenshot()
+    def _capture_color_region(
+        self,
+        region: RelativeRegion | None,
+        use_adb_snapshot: bool = False,
+    ) -> np.ndarray:
+        image = AdbFrameSource(self.device).latest().image if use_adb_snapshot else self.matcher.screenshot()
         if region is None:
             return image
         height, width = image.shape[:2]

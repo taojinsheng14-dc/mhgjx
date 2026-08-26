@@ -21,6 +21,8 @@ class AdbDevice:
         self.adb_path = adb_path
         self._screen_size: ScreenSize | None = None
         self._screenshot_lock = threading.Lock()
+        self._input_lock = threading.Lock()
+        self._input_shell: subprocess.Popen[str] | None = None
 
     def adb_args(self) -> list[str]:
         args = [self.adb_path]
@@ -106,10 +108,13 @@ class AdbDevice:
                 time.sleep(0.08 * (attempt + 1))
             raise RuntimeError(f"ADB raw screenshot failed after retries: {last_error}")
 
-    def screen_size_for_input(self) -> ScreenSize:
+    def screen_size_for_input(self, refresh: bool = False) -> ScreenSize:
+        if self._screen_size is not None and not refresh:
+            return self._screen_size
+
         capture_size = self.current_capture_size()
         if capture_size is None:
-            return self.screen_size()
+            return self.screen_size(refresh=refresh)
         width, height = capture_size
         size = ScreenSize(width=width, height=height)
         if self._screen_size != size:
@@ -117,7 +122,8 @@ class AdbDevice:
         return size
 
     def tap(self, x: int, y: int) -> None:
-        self.run("shell", "input", "tap", str(x), str(y))
+        if not self._send_input_command(f"input tap {x} {y}"):
+            self.run("shell", "input", "tap", str(x), str(y))
 
     def short_swipe_tap(self, x: int, y: int, duration_ms: int = 65) -> None:
         # Some games occasionally treat `input tap` as a highlight-only press.
@@ -126,19 +132,53 @@ class AdbDevice:
         self.swipe(x, y, x + 1, y + 1, duration_ms)
 
     def swipe(self, x1: int, y1: int, x2: int, y2: int, duration_ms: int) -> None:
-        self.run(
-            "shell",
-            "input",
-            "swipe",
-            str(x1),
-            str(y1),
-            str(x2),
-            str(y2),
-            str(duration_ms),
-        )
+        command = f"input swipe {x1} {y1} {x2} {y2} {duration_ms}"
+        if not self._send_input_command(command):
+            self.run(
+                "shell",
+                "input",
+                "swipe",
+                str(x1),
+                str(y1),
+                str(x2),
+                str(y2),
+                str(duration_ms),
+            )
 
     def shell(self, command: str) -> None:
         self.run("shell", command)
+
+    def _send_input_command(self, command: str) -> bool:
+        """Reuse one adb shell for input commands to avoid per-click adb startup."""
+        with self._input_lock:
+            process = self._input_shell
+            if process is None or process.poll() is not None or process.stdin is None:
+                try:
+                    process = subprocess.Popen(
+                        [*self.adb_args(), "shell"],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        encoding="utf-8",
+                        **self._subprocess_options(),
+                    )
+                except Exception:
+                    self._input_shell = None
+                    return False
+                self._input_shell = process
+
+            try:
+                process.stdin.write(command + "\n")
+                process.stdin.flush()
+                return True
+            except Exception:
+                try:
+                    process.kill()
+                except Exception:
+                    pass
+                self._input_shell = None
+                return False
 
     def screenshot_png(self) -> bytes:
         # `adb exec-out screencap` can occasionally return an empty/truncated
