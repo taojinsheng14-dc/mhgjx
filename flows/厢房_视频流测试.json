@@ -1,0 +1,560 @@
+{
+  "repeat": 0,
+  "steps": [
+    {
+      "type": "region_click_until_template",
+      "label": "活动",
+      "point": [
+        0.2937116564417178,
+        0.056666666666666664
+      ],
+      "drift_px": 0,
+      "region": [
+        0.288344,
+        0.0475,
+        0.299463,
+        0.0675
+      ],
+      "padding_ratio": 0.05,
+      "pre_delay": [
+        0.15,
+        0.45
+      ],
+      "post_delay": [
+        0.05,
+        0.12
+      ],
+      "pixel_point": [
+        766,
+        68
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "debug_screenshot_after": true,
+      "use_click_region": true,
+      "region_preview": "厢房_01_活动.png",
+      "tap_mode": "swipe",
+      "tap_duration_ms": 65,
+      "template": "活动弹窗标题_每日活动.png",
+      "threshold": 0.82,
+      "attempts": 3,
+      "verify_timeout": 1.2,
+      "interval": 0.12,
+      "search_region": [
+        0.38,
+        0.04,
+        0.62,
+        0.14
+      ],
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true
+    },
+    {
+      "type": "region_click",
+      "label": "其他任务",
+      "point": [
+        0.25421779141104295,
+        0.5
+      ],
+      "drift_px": 0,
+      "region": [
+        0.20092,
+        0.481667,
+        0.308282,
+        0.518333
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.08,
+        0.22
+      ],
+      "post_delay": [
+        0.08,
+        0.18
+      ],
+      "pixel_point": [
+        663,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "debug_screenshot_after": true,
+      "use_click_region": true,
+      "region_preview": "厢房_02_其他任务.png"
+    },
+    {
+      "type": "region_click",
+      "label": "厢房任务参加",
+      "point": [
+        0.776457055214724,
+        0.27666666666666667
+      ],
+      "drift_px": 0,
+      "region": [
+        0.758436,
+        0.2575,
+        0.794479,
+        0.296667
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.08,
+        0.22
+      ],
+      "post_delay": [
+        0.08,
+        0.18
+      ],
+      "pixel_point": [
+        2025,
+        332
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "use_click_region": true,
+      "region_preview": "厢房_03_厢房任务参加.png"
+    },
+    {
+      "type": "region_click",
+      "label": "关闭活动弹窗",
+      "point": [
+        0.8113496932515337,
+        0.08416666666666667
+      ],
+      "drift_px": 0,
+      "region": [
+        0.802531,
+        0.066667,
+        0.820552,
+        0.103333
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        4.0,
+        4.6
+      ],
+      "post_delay": [
+        0.08,
+        0.16
+      ],
+      "pixel_point": [
+        2116,
+        101
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "use_click_region": true,
+      "debug_screenshot_after": true,
+      "region_preview": "厢房_04_关闭活动弹窗.png"
+    },
+    {
+      "type": "wait_template_click",
+      "template": "厢房接任务.png",
+      "threshold": 0.86,
+      "initial_delay": [
+        5.0,
+        5.6
+      ],
+      "timeout": 75.0,
+      "interval": 0.25,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "post_delay": [
+        0.05,
+        0.12
+      ],
+      "search_region": [
+        0.58,
+        0.35,
+        0.98,
+        0.78
+      ],
+      "debug_screenshot_after": true
+    },
+    {
+      "type": "region_click",
+      "label": "接任务后清理弹框",
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 35,
+      "region": [
+        0.4866,
+        0.4708,
+        0.5134,
+        0.5292
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.08,
+        0.22
+      ],
+      "post_delay": [
+        0.05,
+        0.12
+      ]
+    },
+    {
+      "type": "detect_text_flag",
+      "label": "检测厢房特殊地图字样",
+      "flag": "xiangfang_wait_ground_fly",
+      "texts": [
+        "凤",
+        "海",
+        "地"
+      ],
+      "require_all": false,
+      "async": false,
+      "min_confidence": 0.35,
+      "search_region": [
+        0.78,
+        0.2,
+        0.98,
+        0.55
+      ]
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "特殊地图原地点地板等待飞行",
+      "flag": "xiangfang_wait_ground_fly",
+      "expected": true,
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 60,
+      "region": [
+        0.46,
+        0.42,
+        0.54,
+        0.56
+      ],
+      "use_click_region": true,
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.08,
+        0.22
+      ],
+      "post_delay": [
+        5.0,
+        5.6
+      ],
+      "flag_wait_timeout": 2.0,
+      "debug_screenshot_after": true
+    },
+    {
+      "type": "detect_text_flags",
+      "label": "检测任务栏第一条任务类型",
+      "flags": [
+        {
+          "flag": "xiangfang_first_task_is_xiangfang",
+          "texts": [
+            "巡逻",
+            "援助",
+            "采药",
+            "探险",
+            "守护",
+            "训练",
+            "帮派",
+            "厢房",
+            "玄武",
+            "朱紫",
+            "地狱",
+            "凤",
+            "海"
+          ],
+          "require_all": false
+        },
+        {
+          "flag": "xiangfang_first_task_is_shimen",
+          "texts": [
+            "师门"
+          ],
+          "require_all": false
+        }
+      ],
+      "async": false,
+      "min_confidence": 0.35,
+      "search_region": [
+        0.78,
+        0.23,
+        0.98,
+        0.48
+      ]
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "前去任务地点-第一条",
+      "point": [
+        0.8819018404907976,
+        0.4375
+      ],
+      "drift_px": 0,
+      "region": [
+        0.815,
+        0.375,
+        0.97,
+        0.5
+      ],
+      "padding_ratio": 0.08,
+      "pre_delay": [
+        0.08,
+        0.18
+      ],
+      "post_delay": [
+        0.08,
+        0.18
+      ],
+      "pixel_point": [
+        2300,
+        525
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "debug_screenshot_after": true,
+      "flag_wait_timeout": 1.0,
+      "use_click_region": true,
+      "conditions": {
+        "xiangfang_first_task_is_xiangfang": true
+      }
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "前去任务地点-第二条（首条师门时）",
+      "point": [
+        0.8819018404907976,
+        0.5416666666666666
+      ],
+      "drift_px": 0,
+      "region": [
+        0.815,
+        0.5,
+        0.97,
+        0.6
+      ],
+      "padding_ratio": 0.08,
+      "pre_delay": [
+        0.08,
+        0.18
+      ],
+      "post_delay": [
+        0.08,
+        0.18
+      ],
+      "pixel_point": [
+        2300,
+        650
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "debug_screenshot_after": true,
+      "flag_wait_timeout": 1.0,
+      "use_click_region": true,
+      "conditions": {
+        "xiangfang_first_task_is_xiangfang": false
+      }
+    },
+    {
+      "type": "wait_battle_complete",
+      "template": "战斗回合标志.png",
+      "threshold": 0.86,
+      "search_region": [
+        0.32,
+        0.0,
+        0.68,
+        0.18
+      ],
+      "enter_timeout": 300.0,
+      "battle_timeout": 180.0,
+      "interval": 0.8,
+      "confirm_gone": 1,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "post_delay": [
+        0.05,
+        0.15
+      ],
+      "end_interval": [
+        0.55,
+        0.9
+      ],
+      "enter_retry_delay": [
+        3.0,
+        4.8
+      ],
+      "enter_retry_clicks": [
+        {
+          "label": "等待进战斗时补点第一条任务",
+          "point": [
+            0.8819018404907976,
+            0.4375
+          ],
+          "drift_px": 0,
+          "region": [
+            0.815,
+            0.375,
+            0.97,
+            0.5
+          ],
+          "padding_ratio": 0.08,
+          "pre_delay": [
+            0.05,
+            0.12
+          ],
+          "post_delay": [
+            0.02,
+            0.08
+          ],
+          "pixel_point": [
+            2300,
+            525
+          ],
+          "screen_size": [
+            2608,
+            1200
+          ],
+          "use_click_region": true,
+          "debug_screenshot_after": true,
+          "conditions": {
+            "xiangfang_first_task_is_xiangfang": true
+          }
+        },
+        {
+          "label": "等待进战斗时补点第二条任务",
+          "point": [
+            0.8819018404907976,
+            0.5416666666666666
+          ],
+          "drift_px": 0,
+          "region": [
+            0.815,
+            0.5,
+            0.97,
+            0.6
+          ],
+          "padding_ratio": 0.08,
+          "pre_delay": [
+            0.05,
+            0.12
+          ],
+          "post_delay": [
+            0.02,
+            0.08
+          ],
+          "pixel_point": [
+            2300,
+            650
+          ],
+          "screen_size": [
+            2608,
+            1200
+          ],
+          "use_click_region": true,
+          "debug_screenshot_after": true,
+          "conditions": {
+            "xiangfang_first_task_is_xiangfang": false
+          }
+        }
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "战斗结束后清理弹框",
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 35,
+      "region": [
+        0.4866,
+        0.4708,
+        0.5134,
+        0.5292
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.25,
+        0.65
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ],
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "战斗结束后第二次清理弹框",
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 35,
+      "region": [
+        0.4866,
+        0.4708,
+        0.5134,
+        0.5292
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.25,
+        0.65
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ]
+    },
+    {
+      "type": "delay",
+      "min": 0.2,
+      "max": 0.6
+    }
+  ],
+  "frame_source": "video"
+}

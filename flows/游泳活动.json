@@ -1,0 +1,47 @@
+{
+  "repeat": 0,
+  "steps": [
+    {
+      "type": "swimming_task_loop",
+      "label": "游泳活动循环推进",
+      "template": "战斗回合标志.png",
+      "threshold": 0.8,
+      "search_region": [
+        0.35,
+        0.0,
+        0.65,
+        0.13
+      ],
+      "task_region": [
+        0.8224693251533742,
+        0.36666666666666664,
+        0.910659509202454,
+        0.42083333333333334
+      ],
+      "check_interval": 0.65,
+      "battle_timeout": 300.0,
+      "confirm_gone": 1,
+      "battle_end_delay": [
+        0.35,
+        0.85
+      ],
+      "idle_delay": [
+        2.0,
+        4.0
+      ],
+      "pre_delay": [
+        0.08,
+        0.22
+      ],
+      "post_delay": [
+        0.02,
+        0.08
+      ],
+      "padding_ratio": 0.05,
+      "max_duration": 1800.0,
+      "max_task_clicks": 300,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true
+    }
+  ]
+}

@@ -1,0 +1,317 @@
+{
+  "repeat": 0,
+  "steps": [
+    {
+      "type": "region_click",
+      "label": "活动",
+      "point": [
+        0.2937116564417178,
+        0.056666666666666664
+      ],
+      "drift_px": 0,
+      "region": [
+        0.288344,
+        0.0475,
+        0.299463,
+        0.0675
+      ],
+      "padding_ratio": 0.05,
+      "pre_delay": [
+        0.15,
+        0.45
+      ],
+      "post_delay": [
+        1.0,
+        1.4
+      ],
+      "pixel_point": [
+        766,
+        68
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "debug_screenshot_after": true,
+      "use_click_region": true,
+      "region_preview": "厢房_01_活动.png",
+      "tap_mode": "swipe",
+      "tap_duration_ms": 65
+    },
+    {
+      "type": "region_click",
+      "label": "其他任务",
+      "point": [
+        0.25421779141104295,
+        0.5
+      ],
+      "drift_px": 0,
+      "region": [
+        0.20092,
+        0.481667,
+        0.308282,
+        0.518333
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.15,
+        0.55
+      ],
+      "post_delay": [
+        1.5,
+        2.1
+      ],
+      "pixel_point": [
+        663,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "debug_screenshot_after": true,
+      "use_click_region": true,
+      "region_preview": "厢房_02_其他任务.png"
+    },
+    {
+      "type": "region_click",
+      "label": "厢房任务参加",
+      "point": [
+        0.776457055214724,
+        0.27666666666666667
+      ],
+      "drift_px": 0,
+      "region": [
+        0.758436,
+        0.2575,
+        0.794479,
+        0.296667
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.15,
+        0.55
+      ],
+      "post_delay": [
+        1.0,
+        2.0
+      ],
+      "pixel_point": [
+        2025,
+        332
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "use_click_region": true,
+      "region_preview": "厢房_03_厢房任务参加.png"
+    },
+    {
+      "type": "region_click",
+      "label": "关闭活动弹窗",
+      "point": [
+        0.8113496932515337,
+        0.08416666666666667
+      ],
+      "drift_px": 0,
+      "region": [
+        0.802531,
+        0.066667,
+        0.820552,
+        0.103333
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        4.0,
+        5.0
+      ],
+      "post_delay": [
+        1.5,
+        2.1
+      ],
+      "pixel_point": [
+        2116,
+        101
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "use_click_region": true,
+      "debug_screenshot_after": true,
+      "region_preview": "厢房_04_关闭活动弹窗.png"
+    },
+    {
+      "type": "wait_template_click",
+      "template": "厢房接任务.png",
+      "threshold": 0.86,
+      "initial_delay": [
+        20.0,
+        23.0
+      ],
+      "timeout": 60.0,
+      "interval": 2.0,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "post_delay": [
+        1.8,
+        2.8
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "接任务后清理弹框",
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 35,
+      "region": [
+        0.4866,
+        0.4708,
+        0.5134,
+        0.5292
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.25,
+        0.65
+      ],
+      "post_delay": [
+        1.0,
+        1.8
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "前去任务地点",
+      "point": [
+        0.8611963190184049,
+        0.3258333333333333
+      ],
+      "drift_px": 50,
+      "region": [
+        0.8420245398773005,
+        0.2841666666666666,
+        0.8803680981595092,
+        0.3675
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.1,
+        0.35
+      ],
+      "post_delay": [
+        3.0,
+        4.0
+      ],
+      "pixel_point": [
+        2246,
+        391
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ]
+    },
+    {
+      "type": "wait_battle_complete",
+      "template": "战斗回合标志.png",
+      "threshold": 0.86,
+      "search_region": [
+        0.32,
+        0.0,
+        0.68,
+        0.18
+      ],
+      "enter_timeout": 240.0,
+      "battle_timeout": 180.0,
+      "interval": 3.0,
+      "confirm_gone": 1,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "post_delay": [
+        0.05,
+        0.15
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "战斗结束后清理弹框",
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 35,
+      "region": [
+        0.4866,
+        0.4708,
+        0.5134,
+        0.5292
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.25,
+        0.65
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ],
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "战斗结束后第二次清理弹框",
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 35,
+      "region": [
+        0.4866,
+        0.4708,
+        0.5134,
+        0.5292
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.25,
+        0.65
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ]
+    },
+    {
+      "type": "delay",
+      "min": 0.2,
+      "max": 0.6
+    }
+  ]
+}

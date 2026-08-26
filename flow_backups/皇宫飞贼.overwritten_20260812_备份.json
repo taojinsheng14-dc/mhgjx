@@ -1,0 +1,578 @@
+{
+  "repeat": 20,
+  "steps": [
+    {
+      "type": "region_click",
+      "label": "活动",
+      "pixel_point": [
+        762,
+        70
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.2921779141104294,
+        0.058333333333333334
+      ],
+      "drift_px": 0,
+      "region": [
+        0.2921779141104294,
+        0.058333333333333334,
+        0.2921779141104294,
+        0.058333333333333334
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.15,
+        0.55
+      ],
+      "post_delay": [
+        0.05,
+        0.15000000000000002
+      ],
+      "use_click_region": false
+    },
+    {
+      "type": "region_click",
+      "label": "日常活动",
+      "pixel_point": [
+        648,
+        318
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.24846625766871167,
+        0.265
+      ],
+      "drift_px": 18,
+      "region": [
+        0.24156441717791413,
+        0.25,
+        0.2553680981595092,
+        0.28
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.5,
+        1.1
+      ],
+      "post_delay": [
+        0.05,
+        0.15000000000000002
+      ],
+      "use_click_region": false
+    },
+    {
+      "type": "template_column_region_click",
+      "template": "钟馗抓鬼识别文字.png",
+      "threshold": 0.84,
+      "attempts": 3,
+      "timeout_per_attempt": 0.45,
+      "interval": 0.15,
+      "initial_delay": [
+        0.03,
+        0.12
+      ],
+      "swipe_direction": "up",
+      "swipe_duration_min": 420,
+      "swipe_duration_max": 620,
+      "after_swipe_delay": [
+        0.45,
+        0.75
+      ],
+      "pre_delay": [
+        0.12,
+        0.35
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ],
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "pre_swipes": 0,
+      "progress_state": "zhongkui_ghost",
+      "progress_threshold": 20,
+      "pre_swipes_before_progress": 0,
+      "pre_swipes_after_progress": 0,
+      "retry_swipe_before_progress": false,
+      "retry_swipe_after_progress": true,
+      "match_click_region_offset": [
+        420,
+        -10,
+        570,
+        62
+      ],
+      "debug_screenshot_after": false,
+      "lock_column": false,
+      "lock_key": "zhongkui_text_column",
+      "column_click_regions": {
+        "left": [
+          0.487347,
+          0.179167,
+          0.527991,
+          0.225
+        ],
+        "right": [
+          0.730445,
+          0.183333,
+          0.772623,
+          0.225
+        ]
+      },
+      "padding_ratio": 0.18
+    },
+    {
+      "type": "region_click",
+      "label": "关闭活动弹窗",
+      "point": [
+        0.8067484662576687,
+        0.08333333333333333
+      ],
+      "drift_px": 0,
+      "region": [
+        0.8006134969325154,
+        0.06333333333333334,
+        0.821319018404908,
+        0.11
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        10.0,
+        12.0
+      ],
+      "post_delay": [
+        0.05,
+        0.15000000000000002
+      ],
+      "pixel_point": [
+        2104,
+        100
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "use_click_region": true,
+      "debug_screenshot_after": true
+    },
+    {
+      "type": "wait_template_click",
+      "template": "好的我帮你.png",
+      "threshold": 0.86,
+      "initial_delay": [
+        18.0,
+        24.0
+      ],
+      "timeout": 120.0,
+      "interval": 1.0,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "post_delay": [
+        0.05,
+        0.15
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "接任务后清理弹框",
+      "pixel_point": [
+        1304,
+        600
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.5,
+        0.5
+      ],
+      "drift_px": 35,
+      "region": [
+        0.4866,
+        0.4708,
+        0.5134,
+        0.5292
+      ],
+      "use_click_region": true,
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.25,
+        0.65
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ]
+    },
+    {
+      "type": "region_click",
+      "label": "使用天眼通符",
+      "pixel_point": [
+        1372,
+        976
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.5260736196319018,
+        0.8133333333333334
+      ],
+      "drift_px": 0,
+      "use_click_region": true,
+      "region": [
+        0.514,
+        0.79,
+        0.54,
+        0.835
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.25,
+        0.55
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ]
+    },
+    {
+      "type": "detect_text_flag",
+      "label": "检测是否需要开飞行抓鬼",
+      "texts": [
+        "大唐境外",
+        "五庄观"
+      ],
+      "flag": "need_fly_mount_for_ghost",
+      "async": false,
+      "min_confidence": 0.4,
+      "initial_delay": [
+        0.0,
+        0.0
+      ],
+      "search_region": [
+        0.78,
+        0.2,
+        0.97,
+        0.65
+      ]
+    },
+    {
+      "type": "detect_text_flag",
+      "label": "检测大唐境外抓鬼任务",
+      "texts": [
+        "大唐境外"
+      ],
+      "flag": "fly_station_after_battle",
+      "async": false,
+      "min_confidence": 0.4,
+      "initial_delay": [
+        0.0,
+        0.0
+      ],
+      "search_region": [
+        0.78,
+        0.2,
+        0.97,
+        0.65
+      ]
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "特殊地图前开启飞行",
+      "flag": "need_fly_mount_for_ghost",
+      "expected": true,
+      "pixel_point": [
+        1836,
+        958
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.7039877300613497,
+        0.7983333333333333
+      ],
+      "drift_px": 0,
+      "region": [
+        0.6959355828220859,
+        0.7791666666666667,
+        0.7124233128834356,
+        0.8183333333333334
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.2,
+        0.5
+      ],
+      "post_delay": [
+        1.0,
+        1.6
+      ],
+      "flag_wait_timeout": 5.0,
+      "use_click_region": true,
+      "debug_screenshot_after": true
+    },
+    {
+      "type": "region_click",
+      "label": "点击抓鬼坐标自动寻路",
+      "pixel_point": [
+        2245,
+        500
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.8608128834355828,
+        0.4166666666666667
+      ],
+      "drift_px": 0,
+      "use_click_region": true,
+      "region": [
+        0.843558282208589,
+        0.3791666666666667,
+        0.8780674846625767,
+        0.45416666666666666
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.03,
+        0.12
+      ],
+      "post_delay": [
+        0.03,
+        0.08
+      ]
+    },
+    {
+      "type": "wait_template_click",
+      "template": "抓鬼战斗按钮.png",
+      "threshold": 0.84,
+      "initial_delay": [
+        4.0,
+        4.4
+      ],
+      "timeout": 240.0,
+      "interval": 0.35,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "post_delay": [
+        0.03,
+        0.08
+      ],
+      "padding_ratio": 0.18,
+      "debug_screenshot_after": false,
+      "search_region": [
+        0.66,
+        0.45,
+        0.95,
+        0.72
+      ],
+      "fixed_click_region": [
+        0.7,
+        0.57,
+        0.92,
+        0.67
+      ]
+    },
+    {
+      "type": "wait_battle_complete",
+      "template": "战斗回合标志.png",
+      "threshold": 0.8,
+      "search_region": [
+        0.35,
+        0.0,
+        0.65,
+        0.13
+      ],
+      "round_ocr_region": [
+        0.39,
+        0.0,
+        0.61,
+        0.09
+      ],
+      "round_ocr_interval": 5.0,
+      "round_stall_alert_seconds": 50.0,
+      "max_round_alert": 5,
+      "battle_alert_seconds": 125.0,
+      "round_min_confidence": 0.45,
+      "enter_timeout": 120.0,
+      "battle_timeout": 180.0,
+      "interval": 1.0,
+      "confirm_gone": 1,
+      "progress_increment_state": "zhongkui_ghost",
+      "progress_increment": 1,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "post_delay": [
+        0.03,
+        0.1
+      ],
+      "end_interval": [
+        0.75,
+        1.25
+      ]
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "特殊地图后关闭飞行",
+      "flag": "need_fly_mount_for_ghost",
+      "expected": true,
+      "pixel_point": [
+        1836,
+        958
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.7039877300613497,
+        0.7983333333333333
+      ],
+      "drift_px": 0,
+      "region": [
+        0.6959355828220859,
+        0.7791666666666667,
+        0.7124233128834356,
+        0.8183333333333334
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.4,
+        0.8
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ],
+      "flag_wait_timeout": 8.0,
+      "debug_screenshot_after": true,
+      "use_click_region": true
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "特殊地图后点飞行棋",
+      "flag": "fly_station_after_battle",
+      "expected": true,
+      "pixel_point": [
+        1567,
+        926
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.6008435582822086,
+        0.7716666666666666
+      ],
+      "drift_px": 18,
+      "region": [
+        0.593941717791411,
+        0.7566666666666666,
+        0.6077453987730062,
+        0.7866666666666666
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.2,
+        0.5
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ],
+      "flag_wait_timeout": 8.0,
+      "debug_screenshot_after": true
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "特殊地图后点驿站",
+      "flag": "fly_station_after_battle",
+      "expected": true,
+      "pixel_point": [
+        1276,
+        843
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.4892638036809816,
+        0.7025
+      ],
+      "drift_px": 8,
+      "region": [
+        0.4861963190184049,
+        0.6958333333333333,
+        0.4923312883435583,
+        0.7091666666666666
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        1.8,
+        2.8
+      ],
+      "post_delay": [
+        4.5,
+        5.5
+      ],
+      "flag_wait_timeout": 8.0,
+      "debug_screenshot_after": true
+    },
+    {
+      "type": "conditional_region_click",
+      "label": "特殊地图后关闭背包",
+      "flag": "fly_station_after_battle",
+      "expected": true,
+      "pixel_point": [
+        2376,
+        1040
+      ],
+      "screen_size": [
+        2608,
+        1200
+      ],
+      "point": [
+        0.911042944785276,
+        0.8666666666666667
+      ],
+      "drift_px": 10,
+      "region": [
+        0.9072085889570553,
+        0.8583333333333333,
+        0.9148773006134969,
+        0.875
+      ],
+      "padding_ratio": 0.0,
+      "pre_delay": [
+        0.2,
+        0.5
+      ],
+      "post_delay": [
+        0.05,
+        0.15
+      ],
+      "flag_wait_timeout": 8.0,
+      "debug_screenshot_after": true
+    },
+    {
+      "type": "delay",
+      "min": 0.2,
+      "max": 0.6
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+.venv/
+
+# Runtime output
+logs/
+failures/
+recordings/
+state/
+
+# Local screenshots and OCR/debug scratch files
+current*.png
+crop_*.png
+activity_*.png
+after_*.png
+first_step_result.png
+item_bar.png
+live_raw_screenshot.png
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
