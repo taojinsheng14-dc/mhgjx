@@ -12,6 +12,7 @@ dependencies = [
   "av>=18.1",
   "numpy>=2.1",
   "opencv-python>=4.10",
+  "rapidocr-onnxruntime>=1.4",
 ]
 
 [tool.setuptools]
