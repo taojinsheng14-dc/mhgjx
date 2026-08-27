@@ -505,7 +505,10 @@ class WorkflowRunner:
         self.flag_details[flag] = ""
         event = threading.Event()
         self.flag_events[flag] = event
-        crop = self._capture_color_region(self._optional_search_region(step))
+        crop = self._capture_color_region(
+            self._optional_search_region(step),
+            use_adb_snapshot=bool(step.get("adb_snapshot", False)),
+        )
 
         def worker() -> None:
             try:
@@ -554,7 +557,10 @@ class WorkflowRunner:
         if not normalized_definitions:
             raise ValueError("detect_text_flags has no valid flags")
 
-        crop = self._capture_color_region(self._optional_search_region(step))
+        crop = self._capture_color_region(
+            self._optional_search_region(step),
+            use_adb_snapshot=bool(step.get("adb_snapshot", False)),
+        )
 
         def worker() -> None:
             try:

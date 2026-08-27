@@ -269,31 +269,32 @@
     },
     {
       "type": "detect_text_flags",
-      "label": "检测任务栏第一条任务类型",
+      "label": "判断任务栏第一条是否厢房任务",
       "flags": [
         {
           "flag": "xiangfang_first_task_is_xiangfang",
           "texts": [
-            "巡逻",
-            "援助",
             "采药",
             "探险",
+            "巡逻",
+            "援助",
             "守护",
             "训练",
             "帮派",
-            "厢房",
             "玄武",
             "朱紫",
             "地狱",
             "凤",
-            "海"
+            "海",
+            "大雁塔",
+            "厢房"
           ],
           "require_all": false
         },
         {
           "flag": "xiangfang_first_task_is_shimen",
           "texts": [
-            "师门"
+            "师门任务"
           ],
           "require_all": false
         }
@@ -302,10 +303,12 @@
       "min_confidence": 0.35,
       "search_region": [
         0.78,
-        0.23,
+        0.3,
         0.98,
-        0.48
-      ]
+        0.54
+      ],
+      "adb_snapshot": true,
+      "note": "关键分支使用 ADB 当前截图，避免视频帧旧帧把第一条采药/探险误判成第二条师门。"
     },
     {
       "type": "conditional_region_click",
