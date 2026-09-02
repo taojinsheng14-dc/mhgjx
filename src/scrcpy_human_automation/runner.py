@@ -110,6 +110,8 @@ class WorkflowRunner:
             self._wait_template(step, click=True)
         elif action == "region_click":
             self._region_click(step)
+        elif action == "region_click_if_template":
+            self._region_click_if_template(step)
         elif action == "region_click_until_template":
             self._region_click_until_template(step)
         elif action == "delay":
@@ -118,6 +120,8 @@ class WorkflowRunner:
             self._wait_template(step, click=False)
         elif action == "wait_template_click":
             self._wait_template(step, click=True)
+        elif action == "wait_template_positive_click":
+            self._wait_template_positive(step, click=True)
         elif action == "template_scroll_click":
             self._template_scroll_click(step)
         elif action == "template_column_region_click":
@@ -136,6 +140,10 @@ class WorkflowRunner:
             self._wait_text(step)
         elif action == "conditional_region_click":
             self._conditional_region_click(step)
+        elif action == "race_text_region_click":
+            self._race_text_region_click(step)
+        elif action == "pause_if_flag":
+            self._pause_if_flag(step)
         elif action == "wait_template_gone":
             self._wait_template_gone(step)
         elif action == "wait_region_still":
@@ -255,6 +263,50 @@ class WorkflowRunner:
         )
         self._maybe_save_debug_screenshot(step, "after_click")
         self._verify_after_step(step)
+
+    def _region_click_if_template(self, step: dict) -> None:
+        if self.stop_event.is_set():
+            return
+        label = str(step.get("label") or step.get("template") or step.get("type") or "")
+        initial_delay = step.get("initial_delay", step.get("pre_delay"))
+        if isinstance(initial_delay, list) and len(initial_delay) == 2:
+            self._interruptible_delay(float(initial_delay[0]), float(initial_delay[1]))
+        if self.stop_event.is_set():
+            return
+
+        template_name = str(step.get("condition_template") or step.get("template") or "")
+        if not template_name:
+            raise ValueError("region_click_if_template requires condition_template or template")
+        template_path = self.templates_dir / template_name
+        threshold = float(step.get("threshold", 0.86))
+        timeout = float(step.get("timeout", 0.8))
+        interval = float(step.get("interval", 0.12))
+        mode = str(step.get("match_mode", "color"))
+        search_region = self._optional_search_region(step)
+        deadline = time.monotonic() + timeout
+        best = None
+
+        while not self.stop_event.is_set() and time.monotonic() < deadline:
+            best = self.matcher.find_template(
+                template_path,
+                threshold=threshold,
+                mode=mode,
+                search_region=search_region,
+            )
+            if best:
+                break
+            self._interruptible_wait(interval)
+
+        if not best:
+            self.log(f"条件点击跳过 {label}: 未识别到 {template_name}，认为弹窗已关闭/界面已跳转")
+            return
+
+        click_step = dict(step)
+        click_step["type"] = "region_click"
+        click_step["pre_delay"] = step.get("click_pre_delay", [0.02, 0.08])
+        click_step["post_delay"] = step.get("click_post_delay", step.get("post_delay", [0.05, 0.12]))
+        self.log(f"条件点击执行 {label}: {template_name} {best.confidence:.3f}")
+        self._region_click(click_step)
 
 
     def _verify_after_step(self, step: dict) -> None:
@@ -462,6 +514,113 @@ class WorkflowRunner:
             self._interruptible_wait(interval)
         if not self.stop_event.is_set():
             self._handle_timeout(step, f"超时未识别到模板: {step['template']}")
+
+    def _wait_template_positive(self, step: dict, click: bool) -> None:
+        """Fast positive-only template wait.
+
+        Video frames are useful as an early "I saw it" signal, but they should
+        not make negative/branching decisions because the stream can briefly lag.
+        This helper only acts on a fresh positive match; timeout gets one ADB
+        snapshot fallback before normal failure handling.
+        """
+        template_path = self.templates_dir / step["template"]
+        threshold = float(step.get("threshold", 0.88))
+        timeout = float(step.get("timeout", 10.0))
+        interval = float(step.get("interval", 0.08))
+        max_frame_age = float(step.get("max_frame_age", 0.8))
+        consecutive_hits = max(1, int(step.get("consecutive_hits", 1)))
+        search_region = self._optional_search_region(step)
+        mode = str(step.get("match_mode", "color"))
+
+        started_at = time.monotonic()
+        initial_delay = step.get("initial_delay")
+        if isinstance(initial_delay, list) and len(initial_delay) == 2:
+            self._interruptible_delay(float(initial_delay[0]), float(initial_delay[1]))
+
+        scan_started_at = time.monotonic()
+        deadline = time.monotonic() + timeout
+        last_frame_at = 0.0
+        hits = 0
+        best_match = None
+        best_source = ""
+
+        while not self.stop_event.is_set() and time.monotonic() < deadline:
+            match_started_at = time.monotonic()
+            try:
+                frame = self.frame_source.latest(max_age=max_frame_age)
+            except Exception as exc:
+                self.log(f"positive wait frame error: {exc}")
+                self._interruptible_wait(interval)
+                continue
+
+            if frame.captured_at < scan_started_at:
+                self._interruptible_wait(interval)
+                continue
+            if frame.captured_at <= last_frame_at:
+                self._interruptible_wait(interval)
+                continue
+            last_frame_at = frame.captured_at
+
+            match = self.matcher.find_template(
+                template_path,
+                threshold=threshold,
+                screenshot=frame.image,
+                mode=mode,
+                search_region=search_region,
+            )
+            match_elapsed_ms = (time.monotonic() - match_started_at) * 1000.0
+            if match:
+                hits += 1
+                best_match = match
+                best_source = frame.source
+                self.log(
+                    f"positive event {hits}/{consecutive_hits}: {template_path.name} "
+                    f"{match.confidence:.3f} source={frame.source} 单次{match_elapsed_ms:.0f}ms"
+                )
+                if hits >= consecutive_hits:
+                    total_elapsed = time.monotonic() - started_at
+                    scan_elapsed = time.monotonic() - scan_started_at
+                    if click:
+                        x, y = self._click_match(match, step)
+                        self.log(
+                            f"正向识别成功 {match.confidence:.3f}，点击 ({x}, {y})，"
+                            f"source={frame.source}，总等待{total_elapsed:.2f}s，扫描{scan_elapsed:.2f}s"
+                        )
+                    else:
+                        self.log(
+                            f"正向识别成功 {match.confidence:.3f}: {step['template']}，"
+                            f"source={frame.source}，总等待{total_elapsed:.2f}s，扫描{scan_elapsed:.2f}s"
+                        )
+                    return
+            else:
+                hits = 0
+                best_match = None
+                best_source = ""
+            self._interruptible_wait(interval)
+
+        if step.get("adb_fallback_on_fail", True) and not self.stop_event.is_set():
+            fallback_started_at = time.monotonic()
+            match = self._find_template_from_adb_once(
+                template_path,
+                threshold=threshold,
+                mode=mode,
+                search_region=search_region,
+            )
+            elapsed_ms = (time.monotonic() - fallback_started_at) * 1000.0
+            if match:
+                if click:
+                    x, y = self._click_match(match, step)
+                    self.log(f"ADB兜底正向识别成功 {match.confidence:.3f}，点击 ({x}, {y})，耗时{elapsed_ms:.0f}ms")
+                else:
+                    self.log(f"ADB兜底正向识别成功 {match.confidence:.3f}: {step['template']}，耗时{elapsed_ms:.0f}ms")
+                return
+            self.log(
+                f"ADB兜底仍未识别 {step['template']}，耗时{elapsed_ms:.0f}ms"
+                + (f"，最后视频来源={best_source}" if best_match else "")
+            )
+
+        if not self.stop_event.is_set():
+            self._handle_timeout(step, f"超时未识别到正向模板: {step['template']}")
 
     def _detect_template_flag(self, step: dict) -> None:
         flag = str(step.get("flag") or "")
@@ -895,7 +1054,8 @@ class WorkflowRunner:
                 event = threading.Event()
                 self.flag_events[flag] = event
             event.set()
-            self.log(f"flag {flag}={str(found).lower()} from eye OCR")
+            source = str(step.get("flag_source", "eye OCR"))
+            self.log(f"flag {flag}={str(found).lower()} from {source}")
 
     def _ocr_region_detail(
         self,
@@ -977,6 +1137,136 @@ class WorkflowRunner:
             return
         self.log(f"run conditional click {step.get('label', '')}: flag {flag}={actual}")
         self._region_click(step)
+
+    def _pause_if_flag(self, step: dict) -> None:
+        flag = str(step.get("flag") or "")
+        if not flag:
+            raise ValueError("pause_if_flag requires flag")
+        expected = bool(step.get("expected", True))
+        actual = bool(self.flags.get(flag, False))
+        if actual != expected:
+            self.log(f"skip pause {step.get('label', '')}: flag {flag}={actual}")
+            return
+        message = str(step.get("message") or f"flag {flag}={actual}, paused")
+        self._handle_timeout(step, message)
+
+    def _race_text_region_click(self, step: dict) -> None:
+        candidates = [item for item in step.get("candidates", []) if isinstance(item, dict)]
+        if not candidates:
+            raise ValueError("race_text_region_click requires candidates")
+
+        timeout = float(step.get("timeout", 3.0))
+        video_interval = float(step.get("video_interval", 0.08))
+        adb_interval = float(step.get("adb_interval", 0.45))
+        max_frame_age = float(step.get("max_frame_age", 0.8))
+        min_confidence = float(step.get("min_confidence", 0.35))
+        started_at = time.monotonic()
+        deadline = started_at + timeout
+        result_event = threading.Event()
+        result_lock = threading.Lock()
+        result: dict[str, object] = {}
+
+        def submit(source: str, candidate: dict, detail: str, elapsed_ms: float) -> None:
+            with result_lock:
+                if result_event.is_set():
+                    return
+                result.update(
+                    {
+                        "source": source,
+                        "candidate": candidate,
+                        "detail": detail,
+                        "elapsed_ms": elapsed_ms,
+                    }
+                )
+                result_event.set()
+
+        def scan_image(source: str, image: np.ndarray) -> bool:
+            scan_started_at = time.monotonic()
+            for candidate in candidates:
+                if self.stop_event.is_set() or result_event.is_set():
+                    return True
+                texts = candidate.get("texts")
+                if not isinstance(texts, list) or not texts:
+                    texts = [candidate.get("text", "")]
+                target_texts = [str(value).strip() for value in texts if str(value).strip()]
+                if not target_texts:
+                    continue
+                region = self._relative_region_from_values(candidate.get("search_region"))
+                crop = self._crop_image_region(image, region)
+                found, detail = self._ocr_contains_text(
+                    crop,
+                    target_texts,
+                    min_confidence=min_confidence,
+                    require_all=bool(candidate.get("require_all", False)),
+                )
+                if found:
+                    elapsed_ms = (time.monotonic() - scan_started_at) * 1000.0
+                    submit(source, candidate, detail, elapsed_ms)
+                    return True
+            return False
+
+        def video_worker() -> None:
+            last_frame_at = 0.0
+            while not self.stop_event.is_set() and not result_event.is_set() and time.monotonic() < deadline:
+                try:
+                    frame = self.frame_source.latest(max_age=max_frame_age)
+                except Exception as exc:
+                    self.log(f"race video frame error: {exc}")
+                    self._interruptible_wait(video_interval)
+                    continue
+                if frame.captured_at < started_at or frame.captured_at <= last_frame_at:
+                    self._interruptible_wait(video_interval)
+                    continue
+                last_frame_at = frame.captured_at
+                if scan_image(frame.source, frame.image):
+                    return
+                self._interruptible_wait(video_interval)
+
+        def adb_worker() -> None:
+            adb_source = AdbFrameSource(self.device)
+            while not self.stop_event.is_set() and not result_event.is_set() and time.monotonic() < deadline:
+                try:
+                    frame = adb_source.latest(max_age=0.0)
+                    if scan_image(frame.source, frame.image):
+                        return
+                except Exception as exc:
+                    self.log(f"race adb snapshot error: {exc}")
+                self._interruptible_wait(adb_interval)
+
+        for target, name in ((video_worker, "race-text-video"), (adb_worker, "race-text-adb")):
+            threading.Thread(target=target, name=name, daemon=True).start()
+
+        while not self.stop_event.is_set() and time.monotonic() < deadline:
+            if result_event.wait(timeout=0.05):
+                break
+
+        if not result_event.is_set():
+            self._handle_timeout(step, str(step.get("timeout_message") or "并发正向文字识别超时"))
+            return
+
+        candidate = result.get("candidate")
+        if not isinstance(candidate, dict):
+            self._handle_timeout(step, "并发正向文字识别结果异常")
+            return
+
+        for flag, value in (candidate.get("set_flags") or {}).items():
+            self.flags[str(flag)] = bool(value)
+        detail = str(result.get("detail") or "")
+        self._set_flags_from_ocr_detail({**step, "flag_source": "race OCR"}, detail)
+        source = str(result.get("source") or "")
+        elapsed_ms = float(result.get("elapsed_ms") or 0.0)
+        label = str(candidate.get("label") or step.get("label") or "race_text_region_click")
+        self.log(f"race text selected: {label} source={source} ocr={elapsed_ms:.0f}ms text='{detail[:100]}'")
+
+        click_step = dict(candidate)
+        click_step["type"] = "region_click"
+        click_step.setdefault("label", label)
+        click_step.setdefault("pre_delay", step.get("pre_delay", [0.05, 0.12]))
+        click_step.setdefault("post_delay", step.get("post_delay", [0.02, 0.08]))
+        click_step.setdefault("padding_ratio", step.get("padding_ratio", 0.08))
+        for key in ("texts", "text", "require_all", "search_region", "set_flags"):
+            click_step.pop(key, None)
+        self._region_click(click_step)
 
     def _conditions_match(self, conditions: dict, timeout: float = 0.0) -> tuple[bool, list[str]]:
         mismatches: list[str] = []
@@ -1355,10 +1645,13 @@ class WorkflowRunner:
         round_ocr_interval = float(step.get("round_ocr_interval", max(interval, 3.0)))
         round_stall_seconds = float(step.get("round_stall_alert_seconds", 0.0))
         max_round_alert = int(step.get("max_round_alert", 0))
+        max_round_confirmations = max(1, int(step.get("max_round_confirmations", 2)))
         battle_alert_seconds = float(step.get("battle_alert_seconds", 0.0))
         last_round: int | None = None
         last_round_changed_at = battle_started_at
         last_round_ocr_at = 0.0
+        high_round_candidate: int | None = None
+        high_round_seen = 0
         while not self.stop_event.is_set() and time.monotonic() < deadline:
             now = time.monotonic()
             match = self._find_any_template(
@@ -1377,6 +1670,22 @@ class WorkflowRunner:
                     last_round_ocr_at = now
                     round_number, detail = self._ocr_battle_round(round_region, float(step.get("round_min_confidence", 0.45)))
                     if round_number is not None:
+                        if max_round_alert > 0 and round_number >= max_round_alert:
+                            if high_round_candidate == round_number:
+                                high_round_seen += 1
+                            else:
+                                high_round_candidate = round_number
+                                high_round_seen = 1
+                            self.log(
+                                f"高回合待确认: 第{round_number}回合 "
+                                f"{high_round_seen}/{max_round_confirmations}，OCR='{detail[:60]}'"
+                            )
+                            if high_round_seen >= max_round_confirmations:
+                                self._handle_timeout(step, f"疑似验证/战斗异常: 已到第{round_number}回合")
+                                return
+                            continue
+                        high_round_candidate = None
+                        high_round_seen = 0
                         if last_round != round_number:
                             last_round = round_number
                             last_round_changed_at = now
@@ -1387,9 +1696,6 @@ class WorkflowRunner:
                             if round_stall_seconds > 0 and stalled >= round_stall_seconds:
                                 self._handle_timeout(step, f"疑似验证: 第{round_number}回合停留 {stalled:.0f}s")
                                 return
-                        if max_round_alert > 0 and round_number >= max_round_alert:
-                            self._handle_timeout(step, f"疑似验证/战斗异常: 已到第{round_number}回合")
-                            return
                     elif detail:
                         self.log(f"战斗回合 OCR 未解析: {detail[:60]}")
             else:
@@ -1701,6 +2007,10 @@ class WorkflowRunner:
         use_adb_snapshot: bool = False,
     ) -> np.ndarray:
         image = AdbFrameSource(self.device).latest().image if use_adb_snapshot else self.matcher.screenshot()
+        return self._crop_image_region(image, region)
+
+    @staticmethod
+    def _crop_image_region(image: np.ndarray, region: RelativeRegion | None) -> np.ndarray:
         if region is None:
             return image
         height, width = image.shape[:2]
@@ -1855,11 +2165,13 @@ class WorkflowRunner:
             pre_delay = tuple(step.get("pre_delay", [0.12, 0.35]))
             post_delay = tuple(step.get("post_delay", [0.25, 0.65]))
             padding_ratio = float(step.get("padding_ratio", 0.18))
+            tap_mode = str(step.get("tap_mode", "tap"))
             x, y = self.human.random_tap(
                 fixed_region,
                 pre_delay=pre_delay,
                 post_delay=post_delay,
                 padding_ratio=padding_ratio,
+                tap_mode=tap_mode,
             )
             self._log_click_detail(
                 label=label,
@@ -1870,6 +2182,7 @@ class WorkflowRunner:
                 pre_delay=pre_delay,
                 post_delay=post_delay,
                 padding_ratio=padding_ratio,
+                tap_mode=tap_mode,
                 match_box=match.pixel_box,
             )
             self._maybe_save_debug_screenshot(step, "after_fixed_region_click")
@@ -1884,8 +2197,12 @@ class WorkflowRunner:
             y = center_y + self.human.random.randint(-drift, drift)
             pre_delay = tuple(step.get("pre_delay", [0.12, 0.35]))
             post_delay = tuple(step.get("post_delay", [0.25, 0.65]))
+            tap_mode = str(step.get("tap_mode", "tap"))
             self.human.sleep_random(pre_delay)
-            self.device.tap(x, y)
+            if tap_mode == "swipe":
+                self.device.short_swipe_tap(x, y, int(step.get("tap_duration_ms", 65)))
+            else:
+                self.device.tap(x, y)
             self.human.sleep_random(post_delay)
             self._log_click_detail(
                 label=label,
@@ -1896,6 +2213,7 @@ class WorkflowRunner:
                 drift_px=drift,
                 pre_delay=pre_delay,
                 post_delay=post_delay,
+                tap_mode=tap_mode,
                 match_box=match.pixel_box,
             )
             self._maybe_save_debug_screenshot(step, "after_template_click")
@@ -1903,10 +2221,12 @@ class WorkflowRunner:
         click_region = self._click_region(match.region, step.get("click_area"))
         pre_delay = tuple(step.get("pre_delay", [0.12, 0.35]))
         post_delay = tuple(step.get("post_delay", [0.25, 0.65]))
+        tap_mode = str(step.get("tap_mode", "tap"))
         x, y = self.human.random_tap(
             click_region,
             pre_delay=pre_delay,
             post_delay=post_delay,
+            tap_mode=tap_mode,
         )
         self._log_click_detail(
             label=label,
@@ -1916,6 +2236,7 @@ class WorkflowRunner:
             region=click_region,
             pre_delay=pre_delay,
             post_delay=post_delay,
+            tap_mode=tap_mode,
             match_box=match.pixel_box,
         )
         self._maybe_save_debug_screenshot(step, "after_template_click")
@@ -2132,10 +2453,14 @@ class WorkflowRunner:
         action = step.get("type")
         if action == "template_click":
             return prefix + f"识别并点击 {step.get('template', '')} (阈值 {step.get('threshold', 0.88)})"
+        if action == "region_click_if_template":
+            return prefix + f"识别到 {step.get('condition_template', step.get('template', ''))} 才点击 {step.get('label', '')}"
         if action == "wait_template":
             return prefix + f"等待模板出现 {step.get('template', '')}，最多 {step.get('timeout', 10)}s"
         if action == "wait_template_click":
             return prefix + f"等待模板出现并点击 {step.get('template', '')}，最多 {step.get('timeout', 10)}s"
+        if action == "wait_template_positive_click":
+            return prefix + f"视频正向等待并点击 {step.get('template', '')}，最多 {step.get('timeout', 10)}s"
         if action == "template_scroll_click":
             offset = step.get("click_offset")
             offset_text = f" 偏移{offset}" if isinstance(offset, list) else ""
@@ -2167,6 +2492,10 @@ class WorkflowRunner:
             return prefix + f"等待区域文字 {text}，最多 {float(step.get('timeout', 8.0)):.0f}s"
         if action == "conditional_region_click":
             return prefix + f"conditional click {step.get('label', '')} if {step.get('flag', '')}"
+        if action == "race_text_region_click":
+            return prefix + f"并发识别文字并点击 {step.get('label', '')}，最多 {step.get('timeout', 3)}s"
+        if action == "pause_if_flag":
+            return prefix + f"条件暂停 {step.get('label', '')} if {step.get('flag', '')}"
         if action == "wait_template_gone":
             return prefix + f"等待模板消失 {step.get('template', '')}，最多 {step.get('timeout', 300)}s"
         if action == "wait_region_still":

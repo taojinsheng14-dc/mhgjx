@@ -157,10 +157,10 @@ class ToolboxApp(tk.Tk):
         self.logs_dir.mkdir(exist_ok=True)
         self.recordings_dir.mkdir(exist_ok=True)
         self.log_path = self.logs_dir / f"toolbox_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        preferred_flow = self.flows_dir / "钟馗抓鬼.json"
-        self.flow_path = preferred_flow if preferred_flow.exists() else self.flows_dir / "default.json"
+        self.flow_path: Path | None = None
+        self.flow_selected_for_run = False
         self.flow_frame_source = "adb"
-        self.flow_name_var = tk.StringVar(value=self.flow_path.stem)
+        self.flow_name_var = tk.StringVar(value="")
         self.zhongkui_progress_var = tk.StringVar(value="抓鬼: -")
 
         self.device = AdbDevice()
@@ -391,9 +391,9 @@ class ToolboxApp(tk.Tk):
         ttk.Label(run_row, text="循环次数(0=无限)").pack(side="left")
         self.repeat_var = tk.IntVar(value=0)
         ttk.Spinbox(run_row, from_=0, to=999, width=6, textvariable=self.repeat_var).pack(side="left", padx=6)
-        self.run_button = ttk.Button(run_row, text="Run All", style="Accent.TButton", command=self._run_flow)
+        self.run_button = ttk.Button(run_row, text="Run All", style="Accent.TButton", command=self._run_flow, state="disabled")
         self.run_button.pack(side="left", padx=(8, 5))
-        self.run_from_selected_button = ttk.Button(run_row, text="Run Selected", command=self._run_flow_from_selected)
+        self.run_from_selected_button = ttk.Button(run_row, text="Run Selected", command=self._run_flow_from_selected, state="disabled")
         self.run_from_selected_button.pack(side="left", padx=(0, 5))
         ttk.Button(run_row, text="设置抓鬼计数", command=self._set_zhongkui_progress).pack(side="left", padx=(0, 5))
         ttk.Label(run_row, textvariable=self.zhongkui_progress_var).pack(side="left", padx=(0, 5))
@@ -696,7 +696,8 @@ class ToolboxApp(tk.Tk):
     def _save_step_region_preview(self, edit_index: int, box: tuple[int, int, int, int]) -> Path | None:
         if self.screen_image is None:
             return None
-        flow_name = "".join(char for char in self.flow_path.stem if char not in '\\/:*?"<>|').strip() or "flow"
+        raw_flow_name = self.flow_path.stem if self.flow_path is not None else "unselected_flow"
+        flow_name = "".join(char for char in raw_flow_name if char not in '\\/:*?"<>|').strip() or "flow"
         step = self.steps[edit_index] if 0 <= edit_index < len(self.steps) else {}
         label = "".join(char for char in str(step.get("label", "step")) if char not in '\\/:*?"<>|').strip() or "step"
         path = self.step_previews_dir / f"{flow_name}_{edit_index + 1:02d}_{label}.png"
@@ -2004,6 +2005,10 @@ class ToolboxApp(tk.Tk):
         self._steps_changed(select=index)
 
     def _run_flow(self, start_index: int = 0) -> None:
+        if not self.flow_selected_for_run or self.flow_path is None:
+            messagebox.showinfo("请选择流程", "请先在流程下拉框里选择一个流程，再点击 Run All。")
+            self._log("未选择流程，已阻止运行。")
+            return
         if not self.steps:
             messagebox.showinfo("????", "?????????????")
             return
@@ -2011,6 +2016,7 @@ class ToolboxApp(tk.Tk):
             return
         start_index = max(0, min(start_index, len(self.steps) - 1))
         self._save_flow()
+        self._log(f"开始运行流程: {self.flow_path.stem}")
         self.stop_event = threading.Event()
         frame_source = None
         if self.flow_frame_source == "video":
@@ -2236,6 +2242,11 @@ class ToolboxApp(tk.Tk):
 
     def _load_flow(self) -> None:
         self._refresh_flow_selector()
+        if self.flow_path is None:
+            self.steps = []
+            self.flow_frame_source = "adb"
+            self._refresh_step_list()
+            return
         if not self.flow_path.exists():
             self.steps = []
             self.flow_frame_source = "adb"
@@ -2251,6 +2262,9 @@ class ToolboxApp(tk.Tk):
             self._log(f"读取流程配置失败: {exc}")
 
     def _save_flow(self) -> None:
+        if self.flow_path is None:
+            self._log("未选择流程，跳过保存。")
+            return
         data = {"repeat": max(0, self.repeat_var.get()), "steps": self.steps}
         if self.flow_frame_source != "adb":
             data["frame_source"] = self.flow_frame_source
@@ -2258,8 +2272,8 @@ class ToolboxApp(tk.Tk):
 
     def _refresh_flow_selector(self) -> None:
         names = sorted(path.stem for path in self.flows_dir.glob("*.json"))
-        current = self.flow_path.stem
-        if current not in names:
+        current = self.flow_path.stem if self.flow_path is not None else ""
+        if current and current not in names:
             names.append(current)
         self.flow_selector.configure(values=names)
         self.flow_name_var.set(current)
@@ -2269,7 +2283,10 @@ class ToolboxApp(tk.Tk):
         if not name:
             return
         self.flow_path = self.flows_dir / f"{name}.json"
+        self.flow_selected_for_run = True
         self._load_flow()
+        self.run_button.configure(state="normal")
+        self.run_from_selected_button.configure(state="normal")
         self._log(f"已切换流程: {name}")
 
     def _new_flow(self) -> None:
@@ -2284,10 +2301,13 @@ class ToolboxApp(tk.Tk):
         if path.exists() and not messagebox.askyesno("流程已存在", "同名流程已存在，是否打开？"):
             return
         self.flow_path = path
+        self.flow_selected_for_run = True
         self.steps = []
         self.repeat_var.set(0)
         self._steps_changed()
         self._refresh_flow_selector()
+        self.run_button.configure(state="normal")
+        self.run_from_selected_button.configure(state="normal")
         self._log(f"已新建流程: {safe_name}")
 
     def _thread_log(self, message: str) -> None:
@@ -2327,8 +2347,9 @@ class ToolboxApp(tk.Tk):
                 elif kind == "info":
                     messagebox.showinfo("识别测试", str(value))
                 elif kind == "finished":
-                    self.run_button.configure(state="normal")
-                    self.run_from_selected_button.configure(state="normal")
+                    run_state = "normal" if self.flow_selected_for_run and self.flow_path is not None else "disabled"
+                    self.run_button.configure(state=run_state)
+                    self.run_from_selected_button.configure(state=run_state)
                     self.stop_button.configure(state="disabled")
                 elif kind == "recording_stopped":
                     self.record_button.configure(text="Start Rec", state="normal")

@@ -156,15 +156,18 @@
       "region_preview": "厢房_04_关闭活动弹窗.png"
     },
     {
-      "type": "wait_template_click",
+      "type": "wait_template_positive_click",
       "template": "厢房接任务.png",
       "threshold": 0.86,
       "initial_delay": [
         5.0,
-        5.6
+        5.4
       ],
       "timeout": 75.0,
-      "interval": 0.25,
+      "interval": 0.08,
+      "max_frame_age": 0.8,
+      "consecutive_hits": 1,
+      "adb_fallback_on_fail": true,
       "on_timeout": "pause",
       "screenshot_on_timeout": true,
       "post_delay": [
@@ -177,7 +180,7 @@
         0.98,
         0.78
       ],
-      "debug_screenshot_after": true
+      "debug_screenshot_after": false
     },
     {
       "type": "region_click",
@@ -268,11 +271,28 @@
       "debug_screenshot_after": true
     },
     {
-      "type": "detect_text_flags",
-      "label": "判断任务栏第一条是否厢房任务",
-      "flags": [
+      "type": "race_text_region_click",
+      "label": "并发识别任务栏厢房任务并前往",
+      "timeout": 4.0,
+      "video_interval": 0.08,
+      "adb_interval": 0.45,
+      "max_frame_age": 0.8,
+      "min_confidence": 0.35,
+      "pre_delay": [
+        0.05,
+        0.12
+      ],
+      "post_delay": [
+        0.02,
+        0.08
+      ],
+      "padding_ratio": 0.08,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "timeout_message": "未识别到任务栏厢房任务位置",
+      "candidates": [
         {
-          "flag": "xiangfang_first_task_is_xiangfang",
+          "label": "前去任务地点-第一条",
           "texts": [
             "采药",
             "探险",
@@ -289,102 +309,110 @@
             "大雁塔",
             "厢房"
           ],
-          "require_all": false
+          "require_all": false,
+          "search_region": [
+            0.78,
+            0.24,
+            0.98,
+            0.43
+          ],
+          "region": [
+            0.815,
+            0.3,
+            0.97,
+            0.43
+          ],
+          "point": [
+            0.89,
+            0.365
+          ],
+          "pixel_point": [
+            2321,
+            438
+          ],
+          "screen_size": [
+            2608,
+            1200
+          ],
+          "drift_px": 0,
+          "use_click_region": true,
+          "set_flags": {
+            "xiangfang_first_task_is_xiangfang": true,
+            "xiangfang_first_task_is_shimen": false
+          }
         },
         {
-          "flag": "xiangfang_first_task_is_shimen",
+          "label": "前去任务地点-第二条",
           "texts": [
-            "师门任务"
+            "采药",
+            "探险",
+            "巡逻",
+            "援助",
+            "守护",
+            "训练",
+            "帮派",
+            "玄武",
+            "朱紫",
+            "地狱",
+            "凤",
+            "海",
+            "大雁塔",
+            "厢房"
+          ],
+          "require_all": false,
+          "search_region": [
+            0.78,
+            0.43,
+            0.98,
+            0.6
+          ],
+          "region": [
+            0.815,
+            0.48,
+            0.97,
+            0.6
+          ],
+          "point": [
+            0.89,
+            0.54
+          ],
+          "pixel_point": [
+            2321,
+            648
+          ],
+          "screen_size": [
+            2608,
+            1200
+          ],
+          "drift_px": 0,
+          "use_click_region": true,
+          "set_flags": {
+            "xiangfang_first_task_is_xiangfang": false,
+            "xiangfang_first_task_is_shimen": true
+          }
+        }
+      ],
+      "note": "视频帧和 ADB 当前截图并发 OCR，只有识别到候选任务文本的正向结果才能提交；点击由主流程统一执行，避免双击。",
+      "set_flags_from_ocr": [
+        {
+          "flag": "xiangfang_manual_fengbei_task",
+          "texts": [
+            "丰碑",
+            "清扫本帮丰碑",
+            "点亮帮派丰碑"
           ],
           "require_all": false
         }
-      ],
-      "async": false,
-      "min_confidence": 0.35,
-      "search_region": [
-        0.78,
-        0.3,
-        0.98,
-        0.54
-      ],
-      "adb_snapshot": true,
-      "note": "关键分支使用 ADB 当前截图，避免视频帧旧帧把第一条采药/探险误判成第二条师门。"
+      ]
     },
     {
-      "type": "conditional_region_click",
-      "label": "前去任务地点-第一条",
-      "point": [
-        0.8819018404907976,
-        0.4375
-      ],
-      "drift_px": 0,
-      "region": [
-        0.815,
-        0.375,
-        0.97,
-        0.5
-      ],
-      "padding_ratio": 0.08,
-      "pre_delay": [
-        0.08,
-        0.18
-      ],
-      "post_delay": [
-        0.08,
-        0.18
-      ],
-      "pixel_point": [
-        2300,
-        525
-      ],
-      "screen_size": [
-        2608,
-        1200
-      ],
-      "debug_screenshot_after": true,
-      "flag_wait_timeout": 1.0,
-      "use_click_region": true,
-      "conditions": {
-        "xiangfang_first_task_is_xiangfang": true
-      }
-    },
-    {
-      "type": "conditional_region_click",
-      "label": "前去任务地点-第二条（首条师门时）",
-      "point": [
-        0.8819018404907976,
-        0.5416666666666666
-      ],
-      "drift_px": 0,
-      "region": [
-        0.815,
-        0.5,
-        0.97,
-        0.6
-      ],
-      "padding_ratio": 0.08,
-      "pre_delay": [
-        0.08,
-        0.18
-      ],
-      "post_delay": [
-        0.08,
-        0.18
-      ],
-      "pixel_point": [
-        2300,
-        650
-      ],
-      "screen_size": [
-        2608,
-        1200
-      ],
-      "debug_screenshot_after": true,
-      "flag_wait_timeout": 1.0,
-      "use_click_region": true,
-      "conditions": {
-        "xiangfang_first_task_is_xiangfang": false
-      }
+      "type": "pause_if_flag",
+      "label": "丰碑任务暂停人工处理",
+      "flag": "xiangfang_manual_fengbei_task",
+      "expected": true,
+      "on_timeout": "pause",
+      "screenshot_on_timeout": true,
+      "message": "检测到帮派丰碑类非战斗任务，已点任务前往；请手动完成后再继续。"
     },
     {
       "type": "wait_battle_complete",
@@ -414,80 +442,8 @@
         3.0,
         4.8
       ],
-      "enter_retry_clicks": [
-        {
-          "label": "等待进战斗时补点第一条任务",
-          "point": [
-            0.8819018404907976,
-            0.4375
-          ],
-          "drift_px": 0,
-          "region": [
-            0.815,
-            0.375,
-            0.97,
-            0.5
-          ],
-          "padding_ratio": 0.08,
-          "pre_delay": [
-            0.05,
-            0.12
-          ],
-          "post_delay": [
-            0.02,
-            0.08
-          ],
-          "pixel_point": [
-            2300,
-            525
-          ],
-          "screen_size": [
-            2608,
-            1200
-          ],
-          "use_click_region": true,
-          "debug_screenshot_after": true,
-          "conditions": {
-            "xiangfang_first_task_is_xiangfang": true
-          }
-        },
-        {
-          "label": "等待进战斗时补点第二条任务",
-          "point": [
-            0.8819018404907976,
-            0.5416666666666666
-          ],
-          "drift_px": 0,
-          "region": [
-            0.815,
-            0.5,
-            0.97,
-            0.6
-          ],
-          "padding_ratio": 0.08,
-          "pre_delay": [
-            0.05,
-            0.12
-          ],
-          "post_delay": [
-            0.02,
-            0.08
-          ],
-          "pixel_point": [
-            2300,
-            650
-          ],
-          "screen_size": [
-            2608,
-            1200
-          ],
-          "use_click_region": true,
-          "debug_screenshot_after": true,
-          "conditions": {
-            "xiangfang_first_task_is_xiangfang": false
-          }
-        }
-      ]
+      "enter_retry_clicks": [],
+      "enter_retry_disabled_note": "厢房视频流先稳定优先：任务点击后不再反复补点，避免寻路途中点到师门/背包。"
     },
     {
       "type": "region_click",
