@@ -170,6 +170,10 @@ class WorkflowRunner:
     def _region_click(self, step: dict) -> None:
         if self.stop_event.is_set():
             return
+        if step.get("task_title"):
+            from .task_target import click_named_task
+            click_named_task(self, step)
+            return
         label = str(step.get("label") or step.get("template") or step.get("type") or "")
         if step.get("use_click_region", False):
             values = step.get("region")

@@ -221,6 +221,9 @@
     {
       "type": "region_click",
       "label": "点击飞贼任务坐标自动寻路",
+      "task_title": "皇宫飞贼",
+      "task_search_region": [0.80, 0.24, 0.95, 0.70],
+      "task_timeout": 6.0,
       "pixel_point": [
         2260,
         472
