@@ -7,7 +7,7 @@ import numpy as np
 from .humanizer import RelativeRegion
 
 
-def task_body_box(image, result, title, min_confidence=0.85):
+def task_body_box(image, result, title, min_confidence=0.70):
     height, width = image.shape[:2]
     lines = []
     for polygon, text, confidence in result or []:
@@ -39,7 +39,7 @@ def task_body_box(image, result, title, min_confidence=0.85):
 
 def click_named_task(runner, step):
     title = str(step["task_title"])
-    roi = RelativeRegion.from_ltrb(*step.get("task_search_region", [0.80, 0.24, 0.95, 0.70]))
+    roi = RelativeRegion.from_ltrb(*step.get("task_search_region", [0.785, 0.24, 0.95, 0.70]))
     deadline = time.monotonic() + float(step.get("task_timeout", 6.0))
     while not runner.stop_event.is_set() and time.monotonic() < deadline:
         image = runner._capture_color_region(None, use_adb_snapshot=True)
@@ -53,7 +53,8 @@ def click_named_task(runner, step):
                 runner._ocr_engine = RapidOCR()
             result, _ = runner._ocr_engine(crop)
         box = task_body_box(crop, result, title)
-        runner.log(f"task target: title={title}, box={box}, OCR={runner._ocr_detail(result, 0.85)!r}")
+        scores = [(str(item[1]), round(float(item[2]), 3)) for item in result or []]
+        runner.log(f"task target: title={title}, box={box}, OCR_scores={scores!r}")
         if box is None:
             runner._interruptible_wait(0.3)
             continue

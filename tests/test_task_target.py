@@ -41,6 +41,13 @@ class TaskTargetTests(unittest.TestCase):
         result.pop(1)
         self.assertIsNone(task_body_box(image, result, "皇宫飞贼"))
 
+    def test_correct_title_at_observed_confidence(self):
+        image, result = self.scene(["皇宫飞贼", "师门任务"])
+        result = [(box, text, .754) for box, text, _ in result]
+        self.assertEqual(task_body_box(image, result, "皇宫飞贼")[1], 40)
+        result[0] = (result[0][0], "皇宫飞贼", .69)
+        self.assertIsNone(task_body_box(image, result, "皇宫飞贼"))
+
     def test_timeout_or_stop_never_clicks(self):
         runner = SimpleNamespace(stop_event=threading.Event(), _region_click=Mock(), _handle_timeout=Mock())
         click_named_task(runner, {"task_title": "皇宫飞贼", "task_timeout": 0})
