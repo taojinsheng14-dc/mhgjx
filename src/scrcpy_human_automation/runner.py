@@ -1088,6 +1088,22 @@ class WorkflowRunner:
         )
         return detail
 
+    def _ocr_image_detail(self, image, region: RelativeRegion, min_confidence: float) -> str:
+        """OCR the same evidence image used for the state decision."""
+        crop = self._crop_image_region(image, region)
+        with self._ocr_lock:
+            if self._ocr_engine is None:
+                from rapidocr_onnxruntime import RapidOCR
+                self._ocr_engine = RapidOCR()
+            result, _elapsed = self._ocr_engine(crop)
+            from .coordinate_ocr import retry_coordinate_line
+            detail = self._ocr_detail(result, min_confidence)
+            return retry_coordinate_line(
+                crop, result, detail, self._ocr_engine, self._ocr_detail,
+                self._looks_like_ghost_coordinate, min_confidence,
+                self.stop_event.is_set, self.log,
+            )
+
     @staticmethod
     def _extract_ghost_coordinate(detail: str) -> tuple[int, int] | None:
         normalized = re.sub(r"\s+", "", detail)
