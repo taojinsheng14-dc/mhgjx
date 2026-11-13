@@ -2014,6 +2014,16 @@ class ToolboxApp(tk.Tk):
             return
         if self.worker and self.worker.is_alive():
             return
+        try:
+            size = self.device.screen_size_for_input(refresh=True)
+            recorded = next((step.get("screen_size") for step in self.steps if step.get("screen_size")), None)
+            if recorded and (recorded[0] > recorded[1]) != (size.width > size.height):
+                raise RuntimeError("当前手机方向与录制流程不一致，请进入游戏并保持录制时的横竖屏方向后重试。")
+            self._log(f"运行前刷新屏幕尺寸: {size.width}x{size.height}")
+        except Exception as exc:
+            messagebox.showerror("设备尚未就绪", str(exc))
+            self._log(f"运行前设备检查失败: {exc}")
+            return
         start_index = max(0, min(start_index, len(self.steps) - 1))
         self._save_flow()
         self._log(f"开始运行流程: {self.flow_path.stem}")
