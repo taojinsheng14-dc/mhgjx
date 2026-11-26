@@ -104,6 +104,11 @@ def click_scrolled_card(r, step):
             ok, png = cv2.imencode(".png", evidence)
             if ok:
                 png.tofile(str(r.failures_dir / f"team_click_{time.time_ns()}.png"))
+            if baseline is None:
+                if r.ghost_safety:
+                    r.ghost_safety.participate_sent_at = sent
+                r.log("点击前人物坐标不可读，不推断出发或失败；进入带传送保护的接任务等待")
+                return
             moved = 0
             while time.monotonic()-sent < 14 and not r.stop_event.is_set():
                 r._interruptible_delay(.35,.55)
