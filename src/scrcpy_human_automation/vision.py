@@ -59,6 +59,11 @@ class TemplateMatcher:
             offset_x = left
             offset_y = top
 
+        # A rotated frame or narrow search ROI cannot contain this template.
+        # Return no match rather than letting OpenCV swap inputs or assert.
+        if haystack.shape[0] < template.shape[0] or haystack.shape[1] < template.shape[1]:
+            return None
+
         match_haystack = haystack
         match_template = template
         if mode == "edges":
