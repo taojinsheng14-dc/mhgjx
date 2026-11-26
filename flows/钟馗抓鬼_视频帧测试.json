@@ -152,6 +152,7 @@
     },
     {
       "type": "template_grid_slot_click",
+      "team_scroll_progress": "zhongkui_ghost",
       "template": "钟馗抓鬼识别文字.png",
       "threshold": 0.84,
       "attempts": 1,

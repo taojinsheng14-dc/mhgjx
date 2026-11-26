@@ -1417,7 +1417,19 @@ class WorkflowRunner:
 
     def _template_grid_slot_click(self, step: dict) -> None:
         template_path = self.templates_dir / step["template"]
+        key = step.get("team_scroll_progress")
+        count = None
+        if key:
+            from .team_scroll import today_count, click_scrolled_card
+            count = today_count(self._progress_path(key))
+            self.log(f"组队列表：今日已记录次数={count if count is not None else '未知'}")
+            if count is not None and count >= 20:
+                click_scrolled_card(self, step)
+                return
         match = self._find_template_with_optional_scroll(step, template_path)
+        if not match and key and count is None and not self.stop_event.is_set():
+            click_scrolled_card(self, step)
+            return
         if not match:
             if not self.stop_event.is_set():
                 self._handle_timeout(step, f"????????: {step['template']}")
