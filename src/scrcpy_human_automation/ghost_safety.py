@@ -35,6 +35,7 @@ class GhostSafety:
     def reset_round(self) -> None:
         self.recoveries = 0
         self.close_at = 0.0
+        self.participate_sent_at = None
         self.close_checks = 0
         self.close_retry_at = 0.0
         self.fly_on_sent = False
@@ -92,7 +93,8 @@ class GhostSafety:
                 return False
         if role == "close_activity":
             delay = self.r.human.random.uniform(*step["pre_delay"])
-            self.close_at = time.monotonic() + delay
+            self.close_at = (self.participate_sent_at or time.monotonic()) + delay
+            self.participate_sent_at = None
             self.close_checks = 0
             self.close_retry_at = self.close_at
             self.r.log(f"活动关闭已并入接任务等待，传送保护{delay:.2f}s；只在确认弹窗存在时点击")
