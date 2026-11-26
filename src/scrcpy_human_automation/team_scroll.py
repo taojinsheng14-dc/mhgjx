@@ -45,7 +45,10 @@ def click_scrolled_card(r, step):
     def position(im):
         text = r._ocr_image_detail(im, region(.099, .069, .174, .126), .65)
         pairs = re.findall(r"(?<!\d)(\d{1,3})\s*[,，]\s*(\d{1,3})(?!\d)", text)
-        return tuple(map(int, pairs[0])) if len(pairs) == 1 else None
+        if len(pairs) == 1:
+            return ("xy", *map(int, pairs[0]))
+        visible = re.fullmatch(r"[（(]\s*(\d{1,3})\s*[)）]?", text.strip())
+        return ("visible", int(visible[1])) if visible else None
 
     baseline = position(first)
     if r.stop_event.is_set():
@@ -112,7 +115,10 @@ def click_scrolled_card(r, step):
                     r.log("已出现钟馗接任务按钮，确认到达")
                     return
                 pos = position(fresh)
-                moved = moved+1 if baseline and pos and pos != baseline else 0
+                changed = baseline and pos and pos[1] != baseline[1]
+                if baseline and pos and baseline[0] == pos[0] == "xy":
+                    changed = pos != baseline
+                moved = moved+1 if changed else 0
                 if moved >= 2:
                     if r.ghost_safety:
                         r.ghost_safety.participate_sent_at = sent
